@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Enums\ThesisStatus;
 use App\Models\Thesis;
 use App\Models\Topic;
 use App\Models\User;
@@ -39,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
             }
             // Комиссия и рецензенты видят все работы в статусах review/approved
             if (($user->isCommission() || $user->isReviewer())
-                && in_array($thesis->status, ['review', 'approved'])) {
+                && in_array($thesis->status?->value, [ThesisStatus::Review->value, ThesisStatus::Approved->value], true)) {
                 return true;
             }
             // Админ может всё

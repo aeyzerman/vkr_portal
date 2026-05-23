@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ThesisAssignmentStatus;
+use App\Enums\ThesisAssignmentType;
+use App\Enums\ThesisStatus;
 use DateTime;
 use Illuminate\Database\Eloquent\Model;
 
@@ -13,9 +16,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $supervisor_id
  * @property int $study_group_id
  * @property int $topic_id
- * @property string $assignment_type
- * @property string $assignment_status
- * @property string $status
+ * @property ThesisAssignmentType $assignment_type
+ * @property ThesisAssignmentStatus $assignment_status
+ * @property ThesisStatus $status
  * @property string $document_path
  * @property string $document_name
  * @property DateTime $assigned_at
@@ -27,33 +30,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Thesis extends Model
 {
-    // Порядок статусов для прогресс-бара
-    const STATUSES = [
-        'draft',
-        'submitted',
-        'review',
-        'revision',
-        'approved',
-        'completed',
-    ];
-
-    // Первый и последний - особые
-    const STATUS_INITIAL  = 'draft';
-    const STATUS_FINAL    = 'completed';
-
-    const ASSIGNMENT_TYPES = [
-        'teacher_offer',
-        'student_choice',
-        'student_proposal',
-        'random_assignment',
-    ];
-
-    const ASSIGNMENT_STATUSES = [
-        'pending',
-        'accepted',
-        'declined',
-        'assigned',
-    ];
+    const STATUS_INITIAL = ThesisStatus::Draft;
+    const STATUS_FINAL = ThesisStatus::Completed;
 
     protected $fillable = [
         'student_id',
@@ -74,6 +52,9 @@ class Thesis extends Model
     ];
 
     protected $casts = [
+        'assignment_type' => ThesisAssignmentType::class,
+        'assignment_status' => ThesisAssignmentStatus::class,
+        'status' => ThesisStatus::class,
         'assigned_at' => 'datetime',
         'assignment_responded_at' => 'datetime',
         'started_at' => 'datetime',
@@ -107,7 +88,8 @@ class Thesis extends Model
 
     public function isActive(): bool
     {
-        return $this->done_at === null;
+        return $this->done_at === null
+            && in_array($this->assignment_status?->value, ThesisAssignmentStatus::activeValues(), true);
     }
 
     public function isCompleted(): bool
@@ -121,6 +103,13 @@ class Thesis extends Model
             'status'  => self::STATUS_FINAL,
             'done_at' => now(),
         ]);
+    }
+
+    public function isAwaitingStudentDecision(): bool
+    {
+        return $this->assignment_type === ThesisAssignmentType::TeacherOffer
+            && $this->assignment_status === ThesisAssignmentStatus::Pending
+            && $this->done_at === null;
     }
 
     // Скоупы

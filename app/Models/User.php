@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ThesisAssignmentStatus;
+use App\Enums\ThesisAssignmentType;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -82,7 +84,17 @@ class User extends Authenticatable
     // Активные ВКР студента (без done_at)
     public function activeThesis()
     {
-        return $this->hasOne(Thesis::class, 'student_id')->whereNull('done_at');
+        return $this->hasOne(Thesis::class, 'student_id')
+            ->whereNull('done_at')
+            ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues());
+    }
+
+    public function topicOffers()
+    {
+        return $this->hasMany(Thesis::class, 'student_id')
+            ->whereNull('done_at')
+            ->where('assignment_status', ThesisAssignmentStatus::Pending->value)
+            ->where('assignment_type', ThesisAssignmentType::TeacherOffer->value);
     }
 
     // Все ВКР студента (история)

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\ThesisAssignmentStatus;
 use App\Models\Topic;
 use App\Models\User;
 
@@ -18,11 +19,14 @@ class TopicPolicy
     {
         // Редактировать может автор или админ, но только если тема ещё не занята
         return ($topic->proposed_by === $user->id || $user->isAdmin())
-            && ! $topic->thesis()->whereNull('done_at')->exists();
+            && ! $topic->theses()
+                ->whereNull('done_at')
+                ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues())
+                ->exists();
     }
 
     public function approve(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isSupervisor();
     }
 }

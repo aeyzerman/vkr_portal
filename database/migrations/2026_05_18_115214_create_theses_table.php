@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\ThesisAssignmentStatus;
+use App\Enums\ThesisAssignmentType;
+use App\Enums\ThesisStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -30,20 +33,10 @@ return new class extends Migration
                 ->nullOnDelete();
 
             // Как тема попала к студенту
-            $table->enum('assignment_type', [
-                'teacher_offer',
-                'student_choice',
-                'student_proposal',
-                'random_assignment',
-            ])->nullable();
+            $table->unsignedSmallInteger('assignment_type')->default(ThesisAssignmentType::None->value)->comment('See ' . ThesisAssignmentType::class);
 
             // Состояние согласования темы
-            $table->enum('assignment_status', [
-                'pending',
-                'accepted',
-                'declined',
-                'assigned',
-            ])->default('pending');
+            $table->unsignedSmallInteger('assignment_status')->default(ThesisAssignmentStatus::None->value)->comment('See ' . ThesisAssignmentStatus::class);
 
             $table->timestamp('assigned_at')->nullable();    // Когда тема была предложена / назначена
             $table->timestamp('assignment_responded_at')->nullable(); // Когда студент ответил на предложение
@@ -57,14 +50,7 @@ return new class extends Migration
             // revision   - отправлена на доработку
             // approved   - одобрена руководителем
             // completed  - финальный, защищена
-            $table->enum('status', [
-                'draft',
-                'submitted',
-                'review',
-                'revision',
-                'approved',
-                'completed',
-            ])->default('draft');
+            $table->unsignedSmallInteger('status')->default(ThesisStatus::None->value)->comment('See ' . ThesisStatus::class);
 
             // Загруженный документ (путь в storage)
             $table->string('document_path')->nullable();

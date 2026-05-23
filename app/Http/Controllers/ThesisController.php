@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ThesisAssignmentStatus;
+use App\Enums\ThesisStatus;
 use App\Models\Thesis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ThesisController extends Controller
 {
-    // Страница своей активной работы (для студента)
     public function my(Request $request)
     {
         $user = $request->user();
@@ -17,35 +19,37 @@ class ThesisController extends Controller
             ->with(['topic', 'supervisor', 'studyGroup'])
             ->first();
 
-        // История завершённых работ
+        $pendingOffers = $user->topicOffers()
+            ->with(['topic', 'supervisor', 'studyGroup'])
+            ->latest('assigned_at')
+            ->get();
+
         $history = $user->theses()
-            ->completed()
-            ->with(['topic', 'studyGroup'])
+            ->whereNotNull('done_at')
+            ->with(['topic', 'studyGroup', 'supervisor'])
             ->latest('done_at')
             ->get();
 
-        return view('thesis.my', compact('thesis', 'history'));
+        return view('thesis.my', compact('thesis', 'pendingOffers', 'history'));
     }
 
     public function show(Thesis $thesis)
     {
         $this->authorize('view', $thesis);
 
-        $thesis->load(['student', 'supervisor', 'topic', 'studyGroup']);
+        $thesis->load(['student.studyGroup', 'supervisor', 'topic', 'studyGroup']);
 
         return view('thesis.show', compact('thesis'));
     }
 
-    // Студент загружает документ
     public function uploadDocument(Request $request, Thesis $thesis)
     {
         $this->authorize('uploadDocument', $thesis);
 
         $request->validate([
-            'document' => 'required|file|mimes:pdf,doc,docx|max:20480', // макс 20MB
+            'document' => 'required|file|mimes:pdf,doc,docx|max:20480',
         ]);
 
-        // Удаляем старый файл если был
         if ($thesis->document_path) {
             Storage::disk('local')->delete($thesis->document_path);
         }
@@ -58,10 +62,9 @@ class ThesisController extends Controller
             'document_name' => $file->getClientOriginalName(),
         ]);
 
-        return back()->with('success', 'Документ загружен.');
+        return back()->with('success', 'Файл работы загружен.');
     }
 
-    // Скачать документ (только участники работы + комиссия + админ)
     public function downloadDocument(Thesis $thesis)
     {
         $this->authorize('downloadDocument', $thesis);
@@ -72,76 +75,138 @@ class ThesisController extends Controller
 
         return Storage::disk('local')->download(
             $thesis->document_path,
-            $thesis->document_name ?? 'thesis.pdf'
+            $thesis->document_name ?? 'thesis-document'
         );
     }
 
-    // Смена статуса - руководитель, комиссия, рецензент
+    public function acceptOffer(Request $request, Thesis $thesis)
+    {
+        abort_unless($thesis->student_id === $request->user()->id, 403);
+
+        if (! $thesis->isAwaitingStudentDecision()) {
+            return back()->with('error', 'Это предложение уже неактуально.');
+        }
+
+        if ($request->user()->activeThesis()->exists()) {
+            return back()->with('error', 'У студента уже есть активная работа.');
+        }
+
+        $thesis->update([
+            'assignment_status' => ThesisAssignmentStatus::Accepted,
+            'assignment_responded_at' => now(),
+            'started_at' => now(),
+        ]);
+
+        Thesis::query()
+            ->where('student_id', $thesis->student_id)
+            ->where('id', '!=', $thesis->id)
+            ->whereNull('done_at')
+            ->where('assignment_status', ThesisAssignmentStatus::Pending->value)
+            ->update([
+                'assignment_status' => ThesisAssignmentStatus::Declined->value,
+                'assignment_responded_at' => now(),
+                'done_at' => now(),
+            ]);
+
+        if ($thesis->topic) {
+            $thesis->topic->update(['reserved_for' => null]);
+        }
+
+        return redirect()->route('thesis.my')
+            ->with('success', 'Предложение темы принято.');
+    }
+
+    public function declineOffer(Request $request, Thesis $thesis)
+    {
+        abort_unless($thesis->student_id === $request->user()->id, 403);
+
+        if (! $thesis->isAwaitingStudentDecision()) {
+            return back()->with('error', 'Это предложение уже неактуально.');
+        }
+
+        $thesis->update([
+            'assignment_status' => ThesisAssignmentStatus::Declined,
+            'assignment_responded_at' => now(),
+            'done_at' => now(),
+        ]);
+
+        if ($thesis->topic) {
+            $thesis->topic->update(['reserved_for' => null]);
+        }
+
+        return redirect()->route('thesis.my')
+            ->with('success', 'Предложение темы отклонено.');
+    }
+
     public function updateStatus(Request $request, Thesis $thesis)
     {
         $this->authorize('updateStatus', $thesis);
 
         $validated = $request->validate([
-            'status' => 'required|in:' . implode(',', Thesis::STATUSES),
+            'status' => ['required', Rule::in(array_map(
+                static fn(ThesisStatus $status) => $status->value,
+                array_filter(ThesisStatus::cases(), static fn(ThesisStatus $status) => $status !== ThesisStatus::None)
+            ))],
+            'grade' => 'nullable|integer|min:2|max:5',
         ]);
 
-        $newStatus = $validated['status'];
+        $status = ThesisStatus::from((int) $validated['status']);
+        $updates = ['status' => $status];
 
-        // Нельзя вернуть в draft если уже дальше
-        if ($newStatus === Thesis::STATUS_INITIAL && $thesis->status !== Thesis::STATUS_INITIAL) {
-            return back()->with('error', 'Нельзя вернуть работу в начальный статус.');
+        if ($status === ThesisStatus::Submitted) {
+            $updates['submitted_at'] = now();
         }
 
-        // При финальном статусе - закрываем работу
-        if ($newStatus === Thesis::STATUS_FINAL) {
-            $request->validate([
-                'grade' => 'nullable|integer|min:1|max:5',
-            ]);
-
-            $thesis->update([
-                'status'  => $newStatus,
-                'done_at' => now(),
-                'grade'   => $request->input('grade'),
-            ]);
-
-            return back()->with('success', 'Работа завершена и закрыта.');
+        if ($status === Thesis::STATUS_FINAL) {
+            $updates['done_at'] = now();
+            $updates['grade'] = $validated['grade'] ?? null;
         }
 
-        $thesis->update(['status' => $newStatus]);
+        $thesis->update($updates);
 
         return back()->with('success', 'Статус работы обновлён.');
     }
 
-    // Список всех работ - для руководителя / комиссии / админа
     public function index(Request $request)
     {
         $user = $request->user();
-
-        $query = Thesis::with(['student', 'supervisor', 'topic', 'studyGroup']);
+        $query = Thesis::query()
+            ->with(['student.studyGroup', 'supervisor', 'topic', 'studyGroup'])
+            ->latest();
 
         if ($user->isSupervisor() && ! $user->isAdmin()) {
-            // Руководитель видит только свои работы
             $query->where('supervisor_id', $user->id);
+        } elseif (! ($user->isAdmin() || $user->isCommission() || $user->isReviewer())) {
+            return redirect()->route('thesis.my');
         }
 
-        // Фильтры
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->where('status', (int) $request->input('status'));
+        }
+
+        if ($request->filled('assignment_status')) {
+            $query->where('assignment_status', (int) $request->input('assignment_status'));
         }
 
         if ($request->boolean('show_completed')) {
-            $query->completed();
+            $query->whereNotNull('done_at');
         } else {
-            $query->active();
+            $query->whereNull('done_at');
         }
 
         if ($request->filled('group')) {
-            $query->where('study_group_id', $request->group);
+            $query->where('study_group_id', $request->integer('group'));
         }
 
-        $theses = $query->latest()->paginate(20)->withQueryString();
+        $theses = $query->paginate(20)->withQueryString();
 
-        return view('thesis.index', compact('theses'));
+        return view('thesis.index', [
+            'theses' => $theses,
+            'statuses' => ThesisStatus::cases(),
+            'assignmentStatuses' => array_filter(
+                ThesisAssignmentStatus::cases(),
+                static fn(ThesisAssignmentStatus $status) => $status !== ThesisAssignmentStatus::None
+            ),
+        ]);
     }
 }
-

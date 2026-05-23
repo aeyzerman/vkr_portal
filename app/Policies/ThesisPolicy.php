@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\ThesisStatus;
 use App\Models\Thesis;
 use App\Models\User;
 
@@ -44,7 +45,7 @@ class ThesisPolicy
         }
 
         if (($user->isCommission() || $user->isReviewer())
-            && in_array($thesis->status, ['review', 'approved'])) {
+            && in_array($thesis->status?->value, [ThesisStatus::Review->value, ThesisStatus::Approved->value], true)) {
             return true;
         }
 

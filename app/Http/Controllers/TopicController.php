@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ThesisAssignmentStatus;
+use App\Enums\ThesisAssignmentType;
+use App\Enums\TopicKind;
 use App\Models\Thesis;
 use App\Models\Topic;
 use App\Models\User;
@@ -9,170 +12,290 @@ use Illuminate\Http\Request;
 
 class TopicController extends Controller
 {
-    // Список тем (для студента - свободные, для руководителя - свои, для админа - все)
     public function index(Request $request)
     {
         $user = $request->user();
 
+        $query = Topic::query()
+            ->with(['proposedBy', 'reservedFor', 'approvedBy', 'thesis.student'])
+            ->withCount([
+                'theses as active_assignments_count' => fn($q) => $q
+                    ->whereNull('done_at')
+                    ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues()),
+            ])
+            ->latest();
+
         if ($user->isAdmin()) {
-            $topics = Topic::with(['proposedBy', 'reservedFor'])->latest()->paginate(20);
+            $topics = $query->paginate(20)->withQueryString();
         } elseif ($user->isSupervisor()) {
-            $topics = Topic::where('proposed_by', $user->id)
-                ->with(['reservedFor'])
-                ->withCount('thesis')
-                ->latest()
-                ->paginate(20);
+            $studentIds = $user->supervisedGroups()
+                ->with('students:id,study_group_id')
+                ->get()
+                ->pluck('students')
+                ->flatten()
+                ->pluck('id')
+                ->all();
+
+            $topics = $query
+                ->where(function ($builder) use ($user, $studentIds) {
+                    $builder->where('is_approved', true)
+                        ->orWhere('proposed_by', $user->id);
+
+                    if ($studentIds !== []) {
+                        $builder->orWhereIn('reserved_for', $studentIds);
+                    }
+                })
+                ->paginate(20)
+                ->withQueryString();
         } else {
-            // Студент видит одобренные свободные темы
-            $topics = Topic::available()->with('proposedBy')->latest()->paginate(20);
+            $topics = $query
+                ->where(function ($builder) use ($user) {
+                    $builder->where(function ($available) use ($user) {
+                        $available->where('is_approved', true)
+                            ->where(function ($reserved) use ($user) {
+                                $reserved->whereNull('reserved_for')
+                                    ->orWhere('reserved_for', $user->id);
+                            });
+                    })->orWhere('proposed_by', $user->id);
+                })
+                ->paginate(20)
+                ->withQueryString();
         }
 
-        return view('topics.index', compact('topics'));
+        return view('topics.index', [
+            'topics' => $topics,
+            'user' => $user,
+        ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        // Предложить тему может студент или руководитель
         $this->authorize('create', Topic::class);
 
-        $students = [];
-        if (auth()->user()->isSupervisor()) {
-            // Руководитель может сразу зарезервировать тему за студентом
-            $students = User::where('permissions', '&', User::PERM_STUDENT)
-                ->orderBy('full_name')
-                ->get(['id', 'full_name', 'name']);
+        $user = $request->user();
+        $students = collect();
+
+        if ($user->isSupervisor()) {
+            $students = User::query()
+                ->whereRaw('(permissions & ?) != 0', [User::PERM_STUDENT])
+                ->whereIn('study_group_id', $user->supervisedGroups()->pluck('id'))
+                ->orderByRaw('coalesce(full_name, name)')
+                ->get(['id', 'name', 'full_name', 'study_group_id']);
         }
 
-        return view('topics.create', compact('students'));
+        return view('topics.create', [
+            'user' => $user,
+            'students' => $students,
+        ]);
     }
 
     public function store(Request $request)
     {
         $this->authorize('create', Topic::class);
 
-        $validated = $request->validate([
-            'title'       => 'required|string|max:500',
+        $user = $request->user();
+
+        $rules = [
+            'title' => 'required|string|max:500',
             'description' => 'nullable|string|max:5000',
-            'reserved_for' => 'nullable|exists:users,id',
-        ]);
+        ];
+
+        if ($user->isSupervisor()) {
+            $rules['reserved_for'] = 'nullable|exists:users,id';
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($user->isSupervisor() && ! empty($validated['reserved_for'])) {
+            $studentAllowed = User::query()
+                ->whereKey($validated['reserved_for'])
+                ->whereIn('study_group_id', $user->supervisedGroups()->pluck('id'))
+                ->exists();
+
+            if (! $studentAllowed) {
+                return back()->withErrors([
+                    'reserved_for' => 'Можно резервировать тему только за студентом своей группы.',
+                ])->withInput();
+            }
+        }
 
         $topic = Topic::create([
-            'title'        => $validated['title'],
-            'description'  => $validated['description'] ?? null,
-            'proposed_by'  => $request->user()->id,
-            'reserved_for' => $validated['reserved_for'] ?? null,
-            // Если предлагает руководитель - сразу одобрено, студент - нет
-            'is_approved'  => $request->user()->isSupervisor(),
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'proposed_by' => $user->id,
+            'kind' => $user->isStudent() ? TopicKind::StudentProposal : TopicKind::Catalog,
+            'reserved_for' => $user->isStudent() ? $user->id : ($validated['reserved_for'] ?? null),
+            'is_approved' => $user->isSupervisor() || $user->isAdmin(),
+            'approved_by' => ($user->isSupervisor() || $user->isAdmin()) ? $user->id : null,
+            'approved_at' => ($user->isSupervisor() || $user->isAdmin()) ? now() : null,
         ]);
 
         return redirect()->route('topics.show', $topic)
-            ->with('success', 'Тема успешно предложена.');
+            ->with('success', $user->isStudent() ? 'Тема отправлена на согласование.' : 'Тема добавлена в каталог.');
     }
 
-    public function show(Topic $topic)
+    public function show(Request $request, Topic $topic)
     {
-        $topic->load(['proposedBy', 'reservedFor', 'thesis.student']);
-        return view('topics.show', compact('topic'));
+        $topic->load([
+            'proposedBy',
+            'reservedFor.studyGroup',
+            'approvedBy',
+            'theses.student.studyGroup',
+            'theses.supervisor',
+        ]);
+
+        $user = $request->user();
+        $students = collect();
+
+        if ($user->isSupervisor()) {
+            $students = User::query()
+                ->whereRaw('(permissions & ?) != 0', [User::PERM_STUDENT])
+                ->whereIn('study_group_id', $user->supervisedGroups()->pluck('id'))
+                ->orderByRaw('coalesce(full_name, name)')
+                ->get(['id', 'name', 'full_name', 'study_group_id']);
+        }
+
+        return view('topics.show', [
+            'topic' => $topic,
+            'user' => $user,
+            'students' => $students,
+        ]);
     }
 
-    // Студент подаёт заявку на тему - создаёт thesis c этой темой
     public function apply(Request $request, Topic $topic)
     {
         $user = $request->user();
 
-        if (! $user->isStudent()) {
-            abort(403);
+        abort_unless($user->isStudent(), 403);
+
+        if (! $user->study_group_id || ! $user->studyGroup) {
+            return back()->with('error', 'Студент должен быть прикреплён к учебной группе.');
         }
 
-        // Тема должна быть одобрена и свободна
+        if ($user->activeThesis()->exists()) {
+            return back()->with('error', 'У студента уже есть активная работа.');
+        }
+
+        if ($user->topicOffers()->exists()) {
+            return back()->with('error', 'Сначала примите или отклоните уже предложенную тему.');
+        }
+
         if (! $topic->is_approved) {
-            return back()->with('error', 'Тема ещё не одобрена.');
+            return back()->with('error', 'Тема ещё не согласована.');
         }
 
-        if ($topic->thesis()->whereNull('done_at')->exists()) {
+        if ($topic->theses()
+            ->whereNull('done_at')
+            ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues())
+            ->exists()) {
             return back()->with('error', 'Тема уже занята.');
         }
 
-        // Тема зарезервирована за другим студентом
         if ($topic->reserved_for && $topic->reserved_for !== $user->id) {
             return back()->with('error', 'Тема зарезервирована за другим студентом.');
         }
 
-        // У студента уже есть активная работа
-        if ($user->activeThesis) {
-            return back()->with('error', 'У вас уже есть активная работа. Завершите её перед выбором новой темы.');
-        }
-
-        // Студент должен состоять в группе
-        $thesis = $user->theses()->whereNull('done_at')->first();
-        $groupThesis = Thesis::where('student_id', $user->id)->whereNull('done_at')->first();
-
-        // Создаём работу - руководитель берётся из темы или нужно выбрать
-        $validated = $request->validate([
-            'supervisor_id'  => 'required|exists:users,id',
-            'study_group_id' => 'required|exists:study_groups,id',
-        ]);
-
         Thesis::create([
-            'student_id'     => $user->id,
-            'supervisor_id'  => $validated['supervisor_id'],
-            'study_group_id' => $validated['study_group_id'],
-            'topic_id'       => $topic->id,
-            'status'         => 'draft',
+            'student_id' => $user->id,
+            'supervisor_id' => $user->studyGroup->supervisor_id,
+            'study_group_id' => $user->study_group_id,
+            'topic_id' => $topic->id,
+            'assignment_type' => $topic->kind === TopicKind::StudentProposal
+                ? ThesisAssignmentType::StudentProposal
+                : ThesisAssignmentType::StudentChoice,
+            'assignment_status' => ThesisAssignmentStatus::Accepted,
+            'assigned_at' => now(),
+            'assignment_responded_at' => now(),
+            'started_at' => now(),
+            'status' => Thesis::STATUS_INITIAL,
         ]);
+
+        $topic->update(['reserved_for' => null]);
 
         return redirect()->route('thesis.my')
-            ->with('success', 'Заявка на тему подана. Ожидайте подтверждения руководителя.');
+            ->with('success', 'Тема закреплена за студентом.');
     }
 
-    // Руководитель назначает тему студенту напрямую
     public function assign(Request $request, Topic $topic)
     {
         $user = $request->user();
+        abort_unless($user->isSupervisor() || $user->isAdmin(), 403);
 
-        if (! $user->isSupervisor()) {
+        $validated = $request->validate([
+            'student_id' => 'required|exists:users,id',
+        ]);
+
+        $student = User::with('studyGroup')->findOrFail($validated['student_id']);
+
+        if (! $student->isStudent()) {
+            return back()->with('error', 'Тему можно предлагать только студенту.');
+        }
+
+        if (! $student->studyGroup) {
+            return back()->with('error', 'Студент не прикреплён к группе.');
+        }
+
+        if ($user->isSupervisor() && $student->studyGroup->supervisor_id !== $user->id) {
             abort(403);
         }
 
-        $validated = $request->validate([
-            'student_id'     => 'required|exists:users,id',
-            'study_group_id' => 'required|exists:study_groups,id',
-        ]);
-
-        $student = User::findOrFail($validated['student_id']);
-
-        if ($student->activeThesis) {
+        if ($student->activeThesis()->exists()) {
             return back()->with('error', 'У студента уже есть активная работа.');
         }
 
+        if ($student->topicOffers()->exists()) {
+            return back()->with('error', 'У студента уже есть необработанное предложение темы.');
+        }
+
+        if (! $topic->is_approved) {
+            return back()->with('error', 'Нельзя предлагать несогласованную тему.');
+        }
+
+        if ($topic->theses()
+            ->whereNull('done_at')
+            ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues())
+            ->exists()) {
+            return back()->with('error', 'Тема уже закреплена за другим студентом.');
+        }
+
+        if ($student->studyGroup->topic_selection_deadline && now()->isAfter($student->studyGroup->topic_selection_deadline)) {
+            return back()->with('error', 'Дедлайн выбора темы уже прошёл. Используйте случайное распределение.');
+        }
+
         Thesis::create([
-            'student_id'     => $validated['student_id'],
-            'supervisor_id'  => $user->id,
-            'study_group_id' => $validated['study_group_id'],
-            'topic_id'       => $topic->id,
-            'status'         => 'draft',
+            'student_id' => $student->id,
+            'supervisor_id' => $student->studyGroup->supervisor_id,
+            'study_group_id' => $student->study_group_id,
+            'topic_id' => $topic->id,
+            'assignment_type' => ThesisAssignmentType::TeacherOffer,
+            'assignment_status' => ThesisAssignmentStatus::Pending,
+            'assigned_at' => now(),
+            'status' => Thesis::STATUS_INITIAL,
         ]);
 
-        // Снимаем резервирование если было
-        $topic->update(['reserved_for' => null]);
+        $topic->update(['reserved_for' => $student->id]);
 
         return redirect()->route('topics.show', $topic)
-            ->with('success', 'Тема назначена студенту.');
+            ->with('success', 'Предложение темы отправлено студенту.');
     }
 
-    // Админ одобряет тему
-    public function approve(Topic $topic)
+    public function approve(Request $request, Topic $topic)
     {
         $this->authorize('approve', Topic::class);
 
-        $topic->update(['is_approved' => true]);
+        $topic->update([
+            'is_approved' => true,
+            'approved_by' => $request->user()->id,
+            'approved_at' => now(),
+        ]);
 
-        return back()->with('success', 'Тема одобрена.');
+        return back()->with('success', 'Тема согласована.');
     }
 
     public function edit(Topic $topic)
     {
         $this->authorize('update', $topic);
+
         return view('topics.edit', compact('topic'));
     }
 
@@ -181,7 +304,7 @@ class TopicController extends Controller
         $this->authorize('update', $topic);
 
         $validated = $request->validate([
-            'title'       => 'required|string|max:500',
+            'title' => 'required|string|max:500',
             'description' => 'nullable|string|max:5000',
         ]);
 

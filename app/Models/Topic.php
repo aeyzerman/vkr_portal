@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ThesisAssignmentStatus;
+use App\Enums\TopicKind;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -13,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $proposed_by
  * @property int $reserved_for
  * @property bool $is_approved
- * @property string $kind
+ * @property TopicKind $kind
  */
 class Topic extends Model
 {
@@ -29,6 +31,7 @@ class Topic extends Model
     ];
 
     protected $casts = [
+        'kind' => TopicKind::class,
         'is_approved' => 'boolean',
         'approved_at' => 'datetime',
     ];
@@ -56,7 +59,7 @@ class Topic extends Model
     public function thesis()
     {
         return $this->hasOne(Thesis::class)
-            ->whereIn('assignment_status', ['accepted', 'assigned'])
+            ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues())
             ->latestOfMany();
     }
 
@@ -66,6 +69,6 @@ class Topic extends Model
         return $query->where('is_approved', true)
             ->whereDoesntHave('theses', fn($q) => $q
                 ->whereNull('done_at')
-                ->whereIn('assignment_status', ['accepted', 'assigned']));
+                ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues()));
     }
 }

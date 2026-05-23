@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TopicKind;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,7 +16,7 @@ return new class extends Migration
             $table->foreignId('proposed_by')                 // Кто предложил (студент или руководитель)
                 ->constrained('users')
                 ->restrictOnDelete();
-            $table->enum('kind', ['catalog', 'student_proposal'])->default('catalog');
+            $table->unsignedSmallInteger('kind')->default(TopicKind::None->value)->comment('See ' . TopicKind::class);
             // Если тему предложил руководитель - он может её "зарезервировать" под конкретного студента
             $table->foreignId('reserved_for')
                 ->nullable()
