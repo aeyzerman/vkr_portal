@@ -79,6 +79,13 @@ class User extends Authenticatable
     public function isCommission(): bool { return $this->hasPermission(self::PERM_COMMISSION); }
     public function isAdmin(): bool      { return $this->hasPermission(self::PERM_ADMIN); }
 
+    public static function adminExists(): bool
+    {
+        return static::query()
+            ->whereRaw('(permissions & ?) != 0', [self::PERM_ADMIN])
+            ->exists();
+    }
+
     // --- Связи ---
 
     // Активные ВКР студента (без done_at)
