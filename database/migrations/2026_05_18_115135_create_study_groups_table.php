@@ -15,9 +15,11 @@ return new class extends Migration
             $table->string('specialty_code');                // Код специальности, напр. "09.03.01"
             $table->string('specialty_name');                // Название специальности
             $table->foreignId('supervisor_id')               // Руководитель группы (куратор)
-            ->constrained('users')
+                ->unique()
+                ->constrained('users')
                 ->restrictOnDelete();
             $table->year('enrollment_year');                 // Год поступления потока
+            $table->date('topic_selection_deadline')->nullable(); // Дедлайн, до которого тема должна быть согласована
             $table->timestamps();
         });
     }

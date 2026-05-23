@@ -15,6 +15,11 @@ class StudyGroup extends Model
         'specialty_name',
         'supervisor_id',
         'enrollment_year',
+        'topic_selection_deadline',
+    ];
+
+    protected $casts = [
+        'topic_selection_deadline' => 'date',
     ];
 
     public function supervisor()
@@ -25,6 +30,11 @@ class StudyGroup extends Model
     public function theses()
     {
         return $this->hasMany(Thesis::class);
+    }
+
+    public function students()
+    {
+        return $this->hasMany(User::class);
     }
 
     // Активные (незавершённые) работы группы

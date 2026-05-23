@@ -36,6 +36,7 @@ class User extends Authenticatable
         'email',
         'password',
         'permissions',
+        'study_group_id',
     ];
 
     protected $hidden = [
@@ -100,6 +101,11 @@ class User extends Authenticatable
     public function supervisedGroups()
     {
         return $this->hasMany(StudyGroup::class, 'supervisor_id');
+    }
+
+    public function studyGroup()
+    {
+        return $this->belongsTo(StudyGroup::class);
     }
 
     // Предложенные темы

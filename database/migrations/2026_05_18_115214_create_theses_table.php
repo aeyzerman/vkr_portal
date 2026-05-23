@@ -29,6 +29,27 @@ return new class extends Migration
                 ->constrained('topics')
                 ->nullOnDelete();
 
+            // Как тема попала к студенту
+            $table->enum('assignment_type', [
+                'teacher_offer',
+                'student_choice',
+                'student_proposal',
+                'random_assignment',
+            ])->nullable();
+
+            // Состояние согласования темы
+            $table->enum('assignment_status', [
+                'pending',
+                'accepted',
+                'declined',
+                'assigned',
+            ])->default('pending');
+
+            $table->timestamp('assigned_at')->nullable();    // Когда тема была предложена / назначена
+            $table->timestamp('assignment_responded_at')->nullable(); // Когда студент ответил на предложение
+            $table->timestamp('started_at')->nullable();     // Когда студент начал работу
+            $table->timestamp('submitted_at')->nullable();   // Когда работа была сдана
+
             // Статус / стадия работы
             // draft      - начальный, работа только создана
             // submitted  - студент сдал на проверку
@@ -59,6 +80,8 @@ return new class extends Migration
 
             // Индекс для быстрой выборки активных работ студента
             $table->index(['student_id', 'done_at']);
+            $table->index(['study_group_id', 'assignment_status']);
+            $table->index(['supervisor_id', 'assignment_status']);
         });
     }
 
