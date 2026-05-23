@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ThesisAssignmentStatus;
 use App\Enums\ThesisStatus;
+use App\Models\StudyGroup;
 use App\Models\Thesis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -163,6 +164,18 @@ class ThesisController extends Controller
         }
 
         $thesis->update($updates);
+        $thesis->refresh();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Статус работы обновлён.',
+                'thesis' => [
+                    'id' => $thesis->id,
+                    'status' => $thesis->status->value,
+                    'status_label' => $thesis->status->label(),
+                ],
+            ]);
+        }
 
         return back()->with('success', 'Статус работы обновлён.');
     }
@@ -172,20 +185,13 @@ class ThesisController extends Controller
         $user = $request->user();
         $query = Thesis::query()
             ->with(['student.studyGroup', 'supervisor', 'topic', 'studyGroup'])
-            ->latest();
+            ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues())
+            ->orderByDesc('updated_at');
 
         if ($user->isSupervisor() && ! $user->isAdmin()) {
             $query->where('supervisor_id', $user->id);
         } elseif (! ($user->isAdmin() || $user->isCommission() || $user->isReviewer())) {
             return redirect()->route('thesis.my');
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', (int) $request->input('status'));
-        }
-
-        if ($request->filled('assignment_status')) {
-            $query->where('assignment_status', (int) $request->input('assignment_status'));
         }
 
         if ($request->boolean('show_completed')) {
@@ -198,15 +204,26 @@ class ThesisController extends Controller
             $query->where('study_group_id', $request->integer('group'));
         }
 
-        $theses = $query->paginate(20)->withQueryString();
+        $theses = $query->get();
+
+        $thesesByStatus = [];
+        foreach (ThesisStatus::boardColumns() as $column) {
+            $thesesByStatus[$column->value] = collect();
+        }
+
+        foreach ($theses as $thesis) {
+            $column = ThesisStatus::forBoard($thesis->status?->value);
+            $thesesByStatus[$column->value]->push($thesis);
+        }
+
+        $groups = StudyGroup::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return view('thesis.index', [
-            'theses' => $theses,
-            'statuses' => ThesisStatus::cases(),
-            'assignmentStatuses' => array_filter(
-                ThesisAssignmentStatus::cases(),
-                static fn(ThesisAssignmentStatus $status) => $status !== ThesisAssignmentStatus::None
-            ),
+            'columns' => ThesisStatus::boardColumns(),
+            'thesesByStatus' => $thesesByStatus,
+            'groups' => $groups,
         ]);
     }
 }

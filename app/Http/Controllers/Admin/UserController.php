@@ -5,28 +5,28 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\StudyGroup;
 use App\Models\User;
+use App\Services\StudyGroupMembershipService;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private readonly StudyGroupMembershipService $membership,
+    ) {}
+
     public function index(Request $request)
     {
         $query = User::query()->with('studyGroup.supervisor');
 
         if ($request->filled('search')) {
-            $query->where(function ($builder) use ($request) {
-                $search = '%' . $request->string('search') . '%';
-                $builder->where('full_name', 'like', $search)
-                    ->orWhere('name', 'like', $search)
-                    ->orWhere('email', 'like', $search);
-            });
+            $query->searchByName($request->string('search'));
         }
 
         if ($request->filled('role')) {
             $query->whereRaw('(permissions & ?) != 0', [(int) $request->role]);
         }
 
-        $users = $query->orderByRaw('coalesce(full_name, name)')->paginate(30)->withQueryString();
+        $users = $query->orderBy('last_name')->orderBy('first_name')->paginate(30)->withQueryString();
 
         $roles = [
             User::PERM_STUDENT => 'Студент',
@@ -58,11 +58,17 @@ class UserController extends Controller
             'study_group_id' => 'required|exists:study_groups,id',
         ]);
 
-        $user->update([
-            'study_group_id' => $validated['study_group_id'],
-        ]);
+        $group = StudyGroup::query()->findOrFail($validated['study_group_id']);
+        $this->membership->assignStudent($user, $group, $request->user());
 
         return back()->with('success', 'Пользователь прикреплён к группе.');
+    }
+
+    public function removeGroup(Request $request, User $user)
+    {
+        $this->membership->removeStudent($user, $request->user());
+
+        return back()->with('success', 'Пользователь откреплён от группы.');
     }
 
     public function updatePermissions(Request $request, User $user)
@@ -89,13 +95,24 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'last_name' => 'required|string|max:100',
+            'first_name' => 'required|string|max:100',
+            'patronymic' => 'nullable|string|max:100',
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'study_group_id' => 'nullable|exists:study_groups,id',
         ]);
 
+        $newGroupId = $validated['study_group_id'] ?? null;
+        unset($validated['study_group_id']);
+
         $user->update($validated);
+
+        if ($newGroupId && $user->study_group_id !== (int) $newGroupId) {
+            $group = StudyGroup::query()->findOrFail($newGroupId);
+            $this->membership->assignStudent($user->fresh(), $group, $request->user());
+        } elseif (! $newGroupId && $user->study_group_id) {
+            $this->membership->removeStudent($user->fresh(), $request->user());
+        }
 
         return redirect()->route('admin.users.show', $user)
             ->with('success', 'Данные пользователя обновлены.');

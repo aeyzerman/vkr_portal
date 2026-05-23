@@ -79,8 +79,9 @@ class TopicController extends Controller
             $students = User::query()
                 ->whereRaw('(permissions & ?) != 0', [User::PERM_STUDENT])
                 ->whereIn('study_group_id', $user->supervisedGroups()->pluck('id'))
-                ->orderByRaw('coalesce(full_name, name)')
-                ->get(['id', 'name', 'full_name', 'study_group_id']);
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get(['id', 'name', 'last_name', 'first_name', 'patronymic', 'study_group_id']);
         }
 
         return view('topics.create', [
@@ -151,8 +152,9 @@ class TopicController extends Controller
             $students = User::query()
                 ->whereRaw('(permissions & ?) != 0', [User::PERM_STUDENT])
                 ->whereIn('study_group_id', $user->supervisedGroups()->pluck('id'))
-                ->orderByRaw('coalesce(full_name, name)')
-                ->get(['id', 'name', 'full_name', 'study_group_id']);
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get(['id', 'name', 'last_name', 'first_name', 'patronymic', 'study_group_id']);
         }
 
         return view('topics.show', [

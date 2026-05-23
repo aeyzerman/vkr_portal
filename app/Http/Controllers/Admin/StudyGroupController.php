@@ -29,8 +29,9 @@ class StudyGroupController extends Controller
     {
         $supervisors = User::query()
             ->whereRaw('(permissions & ?) != 0', [User::PERM_SUPERVISOR])
-            ->orderByRaw('coalesce(full_name, name)')
-            ->get(['id', 'full_name', 'name']);
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get(['id', 'last_name', 'first_name', 'patronymic', 'name']);
 
         return view('admin.groups.create', compact('supervisors'));
     }
@@ -39,7 +40,7 @@ class StudyGroupController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:50',
-            'course' => 'required|integer|min:1|max:6',
+            'course' => 'required|integer|in:1,2,3,4',
             'specialty_code' => 'required|string|max:20',
             'specialty_name' => 'required|string|max:255',
             'supervisor_id' => 'required|exists:users,id|unique:study_groups,supervisor_id',
@@ -61,7 +62,11 @@ class StudyGroupController extends Controller
             abort(403);
         }
 
-        $studyGroup->load(['supervisor', 'students']);
+        $studyGroup->load([
+            'supervisor',
+            'students',
+            'pendingJoinRequests.user',
+        ]);
 
         $theses = $studyGroup->theses()
             ->with(['student', 'topic', 'supervisor'])
@@ -84,8 +89,9 @@ class StudyGroupController extends Controller
                 $query->whereDoesntHave('supervisedGroups')
                     ->orWhere('id', $studyGroup->supervisor_id);
             })
-            ->orderByRaw('coalesce(full_name, name)')
-            ->get(['id', 'full_name', 'name']);
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get(['id', 'last_name', 'first_name', 'patronymic', 'name']);
 
         return view('admin.groups.edit', compact('studyGroup', 'supervisors'));
     }
@@ -94,7 +100,7 @@ class StudyGroupController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:50',
-            'course' => 'required|integer|min:1|max:6',
+            'course' => 'required|integer|in:1,2,3,4',
             'specialty_code' => 'required|string|max:20',
             'specialty_name' => 'required|string|max:255',
             'supervisor_id' => 'required|exists:users,id|unique:study_groups,supervisor_id,' . $studyGroup->id,

@@ -21,9 +21,9 @@
                 <tbody class="divide-y divide-stone-100">
                     @forelse ($theses as $thesis)
                         <tr>
-                            <td><a href="{{ route('thesis.show', $thesis) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $thesis->student->full_name ?: $thesis->student->name }}</a></td>
+                            <td><a href="{{ route('thesis.show', $thesis) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $thesis->student->display_name }}</a></td>
                             <td>{{ $thesis->topic?->title ?? 'Без темы' }}</td>
-                            <td>{{ $thesis->supervisor->full_name ?: $thesis->supervisor->name }}</td>
+                            <td>{{ $thesis->supervisor->display_name }}</td>
                             <td>{{ $thesis->studyGroup->name }}</td>
                             <td><span class="badge badge-warning">{{ $thesis->status->label() }}</span></td>
                         </tr>

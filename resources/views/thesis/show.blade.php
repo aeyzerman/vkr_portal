@@ -25,11 +25,11 @@
                 <dl class="mt-6 grid gap-4 md:grid-cols-2">
                     <div class="rounded-3xl bg-stone-50 p-4">
                         <dt class="muted">Студент</dt>
-                        <dd class="mt-2 font-medium text-stone-900">{{ $thesis->student->full_name ?: $thesis->student->name }}</dd>
+                        <dd class="mt-2 font-medium text-stone-900">{{ $thesis->student->display_name }}</dd>
                     </div>
                     <div class="rounded-3xl bg-stone-50 p-4">
                         <dt class="muted">Руководитель</dt>
-                        <dd class="mt-2 font-medium text-stone-900">{{ $thesis->supervisor->full_name ?: $thesis->supervisor->name }}</dd>
+                        <dd class="mt-2 font-medium text-stone-900">{{ $thesis->supervisor->display_name }}</dd>
                     </div>
                     <div class="rounded-3xl bg-stone-50 p-4">
                         <dt class="muted">Группа</dt>

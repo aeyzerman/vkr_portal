@@ -22,18 +22,18 @@
                         {{ $topic->kind === \App\Enums\TopicKind::StudentProposal ? 'Предложение студента' : 'Тема каталога' }}
                     </span>
                     @if ($topic->reservedFor)
-                        <span class="badge badge-neutral">Резерв: {{ $topic->reservedFor->full_name ?: $topic->reservedFor->name }}</span>
+                        <span class="badge badge-neutral">Резерв: {{ $topic->reservedFor->display_name }}</span>
                     @endif
                 </div>
 
                 <dl class="mt-6 grid gap-4 sm:grid-cols-2">
                     <div class="rounded-3xl bg-stone-50 p-4">
                         <dt class="muted">Автор</dt>
-                        <dd class="mt-2 font-medium text-stone-900">{{ $topic->proposedBy->full_name ?: $topic->proposedBy->name }}</dd>
+                        <dd class="mt-2 font-medium text-stone-900">{{ $topic->proposedBy->display_name }}</dd>
                     </div>
                     <div class="rounded-3xl bg-stone-50 p-4">
                         <dt class="muted">Согласовал</dt>
-                        <dd class="mt-2 font-medium text-stone-900">{{ $topic->approvedBy?->full_name ?: $topic->approvedBy?->name ?: 'Пока никто' }}</dd>
+                        <dd class="mt-2 font-medium text-stone-900">{{ $topic->approvedBy?->display_name ?: 'Пока никто' }}</dd>
                     </div>
                 </dl>
 
@@ -49,7 +49,7 @@
                     @forelse ($topic->theses as $thesis)
                         <a href="{{ route('thesis.show', $thesis) }}" class="block rounded-3xl border border-stone-200 p-4 transition hover:border-stone-300">
                             <div class="flex flex-wrap items-center justify-between gap-3">
-                                <span class="font-medium text-stone-900">{{ $thesis->student->full_name ?: $thesis->student->name }}</span>
+                                <span class="font-medium text-stone-900">{{ $thesis->student->display_name }}</span>
                                 <div class="flex gap-2">
                                     <span class="badge badge-neutral">{{ $thesis->assignment_type->label() }}</span>
                                     <span class="badge {{ in_array($thesis->assignment_status->value, \App\Enums\ThesisAssignmentStatus::activeValues(), true) ? 'badge-success' : ($thesis->assignment_status === \App\Enums\ThesisAssignmentStatus::Pending ? 'badge-warning' : 'badge-danger') }}">
@@ -88,7 +88,7 @@
                                 <option value="">Выберите студента</option>
                                 @foreach ($students as $student)
                                     <option value="{{ $student->id }}">
-                                        {{ $student->full_name ?: $student->name }}
+                                        {{ $student->display_name }}
                                     </option>
                                 @endforeach
                             </select>

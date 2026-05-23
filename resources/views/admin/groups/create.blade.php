@@ -10,8 +10,7 @@
             <input type="text" name="name" value="{{ old('name') }}" class="field" required>
         </div>
         <div>
-            <label class="text-sm font-medium text-stone-700">Курс</label>
-            <input type="number" name="course" value="{{ old('course') }}" min="1" max="6" class="field" required>
+            <x-study-group-course-select />
         </div>
         <div>
             <label class="text-sm font-medium text-stone-700">Код специальности</label>
@@ -25,13 +24,12 @@
             <label class="text-sm font-medium text-stone-700">Куратор</label>
             <select name="supervisor_id" class="field" required>
                 @foreach ($supervisors as $supervisor)
-                    <option value="{{ $supervisor->id }}">{{ $supervisor->full_name ?: $supervisor->name }}</option>
+                    <option value="{{ $supervisor->id }}" @selected((int) old('supervisor_id') === $supervisor->id)>{{ $supervisor->display_name }}</option>
                 @endforeach
             </select>
         </div>
         <div>
-            <label class="text-sm font-medium text-stone-700">Год набора</label>
-            <input type="number" name="enrollment_year" value="{{ old('enrollment_year') }}" class="field" required>
+            <x-study-group-year-select />
         </div>
         <div>
             <label class="text-sm font-medium text-stone-700">Дедлайн выбора темы</label>

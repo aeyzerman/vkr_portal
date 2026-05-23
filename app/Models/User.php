@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\StudyGroupJoinRequestStatus;
 use App\Enums\ThesisAssignmentStatus;
 use App\Enums\ThesisAssignmentType;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -16,16 +20,19 @@ use Illuminate\Notifications\Notifiable;
 /**
  * @property int $id
  * @property string $name
+ * @property string $last_name
+ * @property string $first_name
+ * @property string|null $patronymic
  * @property string $email
  * @property string $password
  * @property int $permissions
+ * @property-read string $display_name
  */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    // Битфлаги прав доступа
     const PERM_STUDENT    = 1;
     const PERM_SUPERVISOR = 2;
     const PERM_REVIEWER   = 4;
@@ -34,11 +41,17 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
-        'full_name',
+        'last_name',
+        'first_name',
+        'patronymic',
         'email',
         'password',
         'permissions',
         'study_group_id',
+    ];
+
+    protected $attributes = [
+        'permissions' => self::PERM_STUDENT,
     ];
 
     protected $hidden = [
@@ -54,7 +67,64 @@ class User extends Authenticatable
         ];
     }
 
-    // --- Хелперы прав ---
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if ((int) ($user->permissions ?? 0) === 0) {
+                $user->permissions = self::PERM_STUDENT;
+            }
+
+            $user->syncNameFromParts();
+        });
+
+        static::saving(function (User $user): void {
+            if ($user->isDirty(['last_name', 'first_name', 'patronymic'])) {
+                $user->syncNameFromParts();
+            }
+        });
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        $formatted = trim(implode(' ', array_filter([
+            $this->last_name,
+            $this->first_name,
+            $this->patronymic,
+        ])));
+
+        return $formatted !== '' ? $formatted : (string) $this->name;
+    }
+
+    public function syncNameFromParts(): void
+    {
+        $formatted = trim(implode(' ', array_filter([
+            $this->last_name,
+            $this->first_name,
+            $this->patronymic,
+        ])));
+
+        if ($formatted !== '') {
+            $this->name = $formatted;
+        }
+    }
+
+    public function scopeStudents(Builder $query): Builder
+    {
+        return $query->whereRaw('(permissions & ?) != 0', [self::PERM_STUDENT]);
+    }
+
+    public function scopeSearchByName(Builder $query, string $search): Builder
+    {
+        $like = '%'.$search.'%';
+
+        return $query->where(function (Builder $builder) use ($like): void {
+            $builder->where('last_name', 'like', $like)
+                ->orWhere('first_name', 'like', $like)
+                ->orWhere('patronymic', 'like', $like)
+                ->orWhere('name', 'like', $like)
+                ->orWhere('email', 'like', $like);
+        });
+    }
 
     public function hasPermission(int $permission): bool
     {
@@ -86,17 +156,14 @@ class User extends Authenticatable
             ->exists();
     }
 
-    // --- Связи ---
-
-    // Активные ВКР студента (без done_at)
-    public function activeThesis()
+    public function activeThesis(): HasOne
     {
         return $this->hasOne(Thesis::class, 'student_id')
             ->whereNull('done_at')
             ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues());
     }
 
-    public function topicOffers()
+    public function topicOffers(): HasMany
     {
         return $this->hasMany(Thesis::class, 'student_id')
             ->whereNull('done_at')
@@ -104,31 +171,39 @@ class User extends Authenticatable
             ->where('assignment_type', ThesisAssignmentType::TeacherOffer->value);
     }
 
-    // Все ВКР студента (история)
-    public function theses()
+    public function theses(): HasMany
     {
         return $this->hasMany(Thesis::class, 'student_id');
     }
 
-    // ВКР под руководством
-    public function supervisedTheses()
+    public function supervisedTheses(): HasMany
     {
         return $this->hasMany(Thesis::class, 'supervisor_id');
     }
 
-    // Группы где является куратором
-    public function supervisedGroups()
+    public function supervisedGroups(): HasMany
     {
         return $this->hasMany(StudyGroup::class, 'supervisor_id');
     }
 
-    public function studyGroup()
+    public function studyGroup(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(StudyGroup::class);
     }
 
-    // Предложенные темы
-    public function proposedTopics()
+    public function studyGroupJoinRequests(): HasMany
+    {
+        return $this->hasMany(StudyGroupJoinRequest::class);
+    }
+
+    public function pendingStudyGroupJoinRequest(): HasOne
+    {
+        return $this->hasOne(StudyGroupJoinRequest::class)
+            ->where('status', StudyGroupJoinRequestStatus::Pending)
+            ->latestOfMany();
+    }
+
+    public function proposedTopics(): HasMany
     {
         return $this->hasMany(Topic::class, 'proposed_by');
     }

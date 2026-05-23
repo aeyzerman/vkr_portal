@@ -37,6 +37,17 @@ class StudyGroup extends Model
         return $this->hasMany(User::class);
     }
 
+    public function joinRequests()
+    {
+        return $this->hasMany(StudyGroupJoinRequest::class);
+    }
+
+    public function pendingJoinRequests()
+    {
+        return $this->hasMany(StudyGroupJoinRequest::class)
+            ->where('status', \App\Enums\StudyGroupJoinRequestStatus::Pending);
+    }
+
     // Активные (незавершённые) работы группы
     public function activeTheses()
     {

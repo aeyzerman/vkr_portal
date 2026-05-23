@@ -24,4 +24,32 @@ enum ThesisStatus: int
             self::Completed => 'Завершена',
         };
     }
+
+    /**
+     * Колонки канбан-доски «Работы».
+     *
+     * @return list<self>
+     */
+    public static function boardColumns(): array
+    {
+        return [
+            self::Draft,
+            self::Submitted,
+            self::Review,
+            self::Revision,
+            self::Approved,
+            self::Completed,
+        ];
+    }
+
+    public static function forBoard(mixed $value): self
+    {
+        $status = self::tryFrom((int) $value);
+
+        if ($status === null || $status === self::None) {
+            return self::Draft;
+        }
+
+        return $status;
+    }
 }

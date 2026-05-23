@@ -30,15 +30,16 @@ class AdminProvisioner
 
         $created = ! $user->exists;
 
+        $adminName = (string) config('portal.admin.name', 'Administrator');
+        [$lastName, $firstName, $patronymic] = $this->splitAdminName($adminName);
+
         $user->fill([
-            'name' => (string) config('portal.admin.name', 'Administrator'),
+            'last_name' => $lastName,
+            'first_name' => $firstName,
+            'patronymic' => $patronymic,
             'password' => (string) config('portal.admin.password'),
             'permissions' => User::PERM_ADMIN,
         ]);
-
-        if ($user->full_name === null) {
-            $user->full_name = $user->name;
-        }
 
         $user->email_verified_at ??= now();
         $user->save();
@@ -49,6 +50,20 @@ class AdminProvisioner
                 ? "Создан администратор: {$email}"
                 : "Обновлён администратор: {$email}",
             'user' => $user,
+        ];
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: ?string}
+     */
+    private function splitAdminName(string $source): array
+    {
+        $parts = preg_split('/\s+/u', trim($source)) ?: [];
+
+        return [
+            $parts[0] ?? 'Administrator',
+            $parts[1] ?? '',
+            isset($parts[2]) ? implode(' ', array_slice($parts, 2)) : null,
         ];
     }
 }

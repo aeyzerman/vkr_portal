@@ -17,38 +17,31 @@
         </div>
     </x-slot>
 
+    @php
+        $canManage = auth()->user()->isAdmin()
+            || (auth()->user()->isSupervisor() && $studyGroup->supervisor_id === auth()->id());
+    @endphp
+
     <div class="space-y-6">
         <section class="grid gap-4 md:grid-cols-3">
-            <div class="stat-card"><p class="muted">Куратор</p><p class="mt-3 text-lg font-semibold">{{ $studyGroup->supervisor->full_name ?: $studyGroup->supervisor->name }}</p></div>
+            <div class="stat-card"><p class="muted">Куратор</p><p class="mt-3 text-lg font-semibold">{{ $studyGroup->supervisor->display_name }}</p></div>
             <div class="stat-card"><p class="muted">Студенты</p><p class="mt-3 text-3xl font-semibold">{{ $studyGroup->students->count() }}</p></div>
             <div class="stat-card"><p class="muted">Дедлайн выбора</p><p class="mt-3 text-lg font-semibold">{{ optional($studyGroup->topic_selection_deadline)->format('d.m.Y') ?: 'Не задан' }}</p></div>
         </section>
 
-        <section class="grid gap-6 lg:grid-cols-2">
-            <div class="panel">
-                <h2 class="section-title">Студенты группы</h2>
-                <div class="mt-5 space-y-3">
-                    @foreach ($studyGroup->students as $student)
-                        <div class="rounded-3xl border border-stone-200 p-4">
-                            <p class="font-medium text-stone-900">{{ $student->full_name ?: $student->name }}</p>
-                            <p class="mt-1 text-sm text-stone-500">{{ $student->email }}</p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
+        <x-group-membership-panel :study-group="$studyGroup" :can-manage="$canManage" />
 
-            <div class="panel">
-                <h2 class="section-title">Свободные темы каталога</h2>
-                <div class="mt-5 space-y-3">
-                    @forelse ($availableTopics as $topic)
-                        <a href="{{ route('topics.show', $topic) }}" class="block rounded-3xl border border-stone-200 p-4 transition hover:border-stone-300">
-                            <p class="font-medium text-stone-900">{{ $topic->title }}</p>
-                            <p class="mt-1 text-sm text-stone-500">{{ $topic->proposedBy->full_name ?: $topic->proposedBy->name }}</p>
-                        </a>
-                    @empty
-                        <p class="text-sm text-stone-500">Свободных тем нет.</p>
-                    @endforelse
-                </div>
+        <section class="panel">
+            <h2 class="section-title">Свободные темы каталога</h2>
+            <div class="mt-5 space-y-3">
+                @forelse ($availableTopics as $topic)
+                    <a href="{{ route('topics.show', $topic) }}" class="block rounded-3xl border border-stone-200 p-4 transition hover:border-stone-300">
+                        <p class="font-medium text-stone-900">{{ $topic->title }}</p>
+                        <p class="mt-1 text-sm text-stone-500">{{ $topic->proposedBy->display_name }}</p>
+                    </a>
+                @empty
+                    <p class="text-sm text-stone-500">Свободных тем нет.</p>
+                @endforelse
             </div>
         </section>
 
@@ -67,7 +60,7 @@
                     <tbody class="divide-y divide-stone-100">
                         @foreach ($theses as $thesis)
                             <tr>
-                                <td><a href="{{ route('thesis.show', $thesis) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $thesis->student->full_name ?: $thesis->student->name }}</a></td>
+                                <td><a href="{{ route('thesis.show', $thesis) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $thesis->student->display_name }}</a></td>
                                 <td>{{ $thesis->topic?->title ?? 'Без темы' }}</td>
                                 <td>{{ $thesis->assignment_type->label() }} / {{ $thesis->assignment_status->label() }}</td>
                                 <td>{{ $thesis->status->label() }}</td>

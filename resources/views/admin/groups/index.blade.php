@@ -26,7 +26,7 @@
                         <tr>
                             <td><a href="{{ route('admin.groups.show', $group) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $group->name }}</a></td>
                             <td>{{ $group->specialty_code }} • {{ $group->specialty_name }}</td>
-                            <td>{{ $group->supervisor->full_name ?: $group->supervisor->name }}</td>
+                            <td>{{ $group->supervisor->display_name }}</td>
                             <td>{{ $group->students_count }}</td>
                             <td>{{ optional($group->topic_selection_deadline)->format('d.m.Y') ?: 'Нет' }}</td>
                         </tr>

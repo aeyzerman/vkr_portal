@@ -12,11 +12,7 @@
     <form method="POST" action="{{ route('register') }}" class="space-y-4">
         @csrf
 
-        <div>
-            <x-input-label for="name" value="Имя" />
-            <x-text-input id="name" class="field mt-1 block w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
-        </div>
+        <x-user-name-fields />
 
         <div>
             <x-input-label for="email" value="Email" />

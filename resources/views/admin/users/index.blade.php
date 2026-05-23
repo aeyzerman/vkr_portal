@@ -40,7 +40,7 @@
                     <tbody class="divide-y divide-stone-100">
                         @foreach ($users as $user)
                             <tr>
-                                <td><a href="{{ route('admin.users.show', $user) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $user->full_name ?: $user->name }}</a></td>
+                                <td><a href="{{ route('admin.users.show', $user) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $user->display_name }}</a></td>
                                 <td>{{ $user->email }}</td>
                                 <td>{{ $user->studyGroup?->name ?: 'Не назначена' }}</td>
                             </tr>

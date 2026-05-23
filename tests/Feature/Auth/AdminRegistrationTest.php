@@ -13,7 +13,8 @@ class AdminRegistrationTest extends TestCase
     public function test_regular_registration_grants_student_permission(): void
     {
         $response = $this->post('/register', [
-            'name' => 'Test User',
+            'last_name' => 'Студентов',
+            'first_name' => 'Студент',
             'email' => 'student@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -28,7 +29,8 @@ class AdminRegistrationTest extends TestCase
         config(['portal.admin.registration_token' => 'bootstrap-secret']);
 
         $response = $this->post('/register', [
-            'name' => 'Bootstrap Admin',
+            'last_name' => 'Админов',
+            'first_name' => 'Админ',
             'email' => 'admin@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
@@ -52,7 +54,8 @@ class AdminRegistrationTest extends TestCase
         ]);
 
         $this->post('/register', [
-            'name' => 'Another Admin',
+            'last_name' => 'Другой',
+            'first_name' => 'Админ',
             'email' => 'another@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',

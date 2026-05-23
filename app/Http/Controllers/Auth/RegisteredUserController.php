@@ -28,7 +28,9 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $rules = [
-            'name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'patronymic' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ];
@@ -39,16 +41,19 @@ class RegisteredUserController extends Controller
 
         $request->validate($rules);
 
-        $permissions = $this->shouldGrantAdmin($request)
-            ? User::PERM_ADMIN
-            : User::PERM_STUDENT;
-
-        $user = User::create([
-            'name' => $request->name,
+        $attributes = [
+            'last_name' => $request->last_name,
+            'first_name' => $request->first_name,
+            'patronymic' => $request->patronymic,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'permissions' => $permissions,
-        ]);
+        ];
+
+        if ($this->shouldGrantAdmin($request)) {
+            $attributes['permissions'] = User::PERM_ADMIN;
+        }
+
+        $user = User::create($attributes);
 
         event(new Registered($user));
 

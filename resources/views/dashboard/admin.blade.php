@@ -27,7 +27,7 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="font-medium text-stone-900">{{ $group->name }}</p>
-                                    <p class="mt-1 text-sm text-stone-500">{{ $group->supervisor->full_name ?: $group->supervisor->name }}</p>
+                                    <p class="mt-1 text-sm text-stone-500">{{ $group->supervisor->display_name }}</p>
                                 </div>
                                 <span class="badge badge-neutral">{{ optional($group->topic_selection_deadline)->format('d.m.Y') ?: 'без дедлайна' }}</span>
                             </div>
@@ -47,7 +47,7 @@
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="font-medium text-stone-900">{{ $topic->title }}</p>
-                                    <p class="mt-1 text-sm text-stone-500">{{ $topic->proposedBy->full_name ?: $topic->proposedBy->name }}</p>
+                                    <p class="mt-1 text-sm text-stone-500">{{ $topic->proposedBy->display_name }}</p>
                                 </div>
                                 <span class="badge {{ $topic->is_approved ? 'badge-success' : 'badge-warning' }}">
                                     {{ $topic->is_approved ? 'Согласована' : 'На согласовании' }}

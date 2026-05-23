@@ -37,7 +37,8 @@ class AdminProvisionerTest extends TestCase
         $this->assertSame('created', $result['status']);
         $this->assertDatabaseHas('users', [
             'email' => 'admin@example.com',
-            'name' => 'Root Admin',
+            'last_name' => 'Root',
+            'first_name' => 'Admin',
             'permissions' => User::PERM_ADMIN,
         ]);
 
@@ -55,7 +56,8 @@ class AdminProvisionerTest extends TestCase
 
         User::factory()->create([
             'email' => 'admin@example.com',
-            'name' => 'Old Name',
+            'last_name' => 'Старое',
+            'first_name' => 'Имя',
             'permissions' => User::PERM_STUDENT,
         ]);
 
@@ -64,7 +66,8 @@ class AdminProvisionerTest extends TestCase
         $this->assertSame('updated', $result['status']);
         $this->assertDatabaseHas('users', [
             'email' => 'admin@example.com',
-            'name' => 'Updated Admin',
+            'last_name' => 'Updated',
+            'first_name' => 'Admin',
             'permissions' => User::PERM_ADMIN,
         ]);
     }

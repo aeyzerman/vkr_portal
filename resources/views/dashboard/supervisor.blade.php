@@ -50,7 +50,7 @@
                     @forelse ($pendingOffers as $offer)
                         <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5">
                             <h3 class="font-semibold text-stone-900">{{ $offer->topic?->title ?? 'Без темы' }}</h3>
-                            <p class="mt-2 text-sm text-stone-600">{{ $offer->student->full_name ?: $offer->student->name }} • {{ $offer->studyGroup->name }}</p>
+                            <p class="mt-2 text-sm text-stone-600">{{ $offer->student->display_name }} • {{ $offer->studyGroup->name }}</p>
                             <p class="mt-1 text-sm text-stone-500">Предложено {{ optional($offer->assigned_at)->format('d.m.Y H:i') }}</p>
                         </div>
                     @empty
@@ -78,7 +78,7 @@
                         <tbody class="divide-y divide-stone-100">
                             @forelse ($theses as $thesis)
                                 <tr>
-                                    <td><a href="{{ route('thesis.show', $thesis) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $thesis->student->full_name ?: $thesis->student->name }}</a></td>
+                                    <td><a href="{{ route('thesis.show', $thesis) }}" class="font-medium text-stone-900 hover:text-stone-700">{{ $thesis->student->display_name }}</a></td>
                                     <td>{{ $thesis->topic?->title ?? 'Без темы' }}</td>
                                     <td>{{ $thesis->studyGroup->name }}</td>
                                     <td><span class="badge badge-neutral">{{ $thesis->status->label() }}</span></td>

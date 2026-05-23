@@ -92,4 +92,72 @@
     .data-table td {
         @apply px-4 py-3 align-top text-stone-700;
     }
+
+    .kanban-board {
+        @apply flex gap-4 overflow-x-auto pb-4;
+    }
+
+    .kanban-column {
+        @apply flex w-72 shrink-0 flex-col rounded-3xl border border-stone-200 bg-stone-50/80;
+    }
+
+    .kanban-column-header {
+        @apply flex items-center justify-between gap-2 border-b border-stone-200 px-4 py-3;
+    }
+
+    .kanban-column-title {
+        @apply text-sm font-semibold text-stone-800;
+    }
+
+    .kanban-column-count {
+        @apply inline-flex min-w-6 items-center justify-center rounded-full bg-stone-200 px-2 py-0.5 text-xs font-semibold text-stone-700;
+    }
+
+    .kanban-column-body {
+        @apply flex min-h-[12rem] flex-1 flex-col gap-3 p-3 transition;
+    }
+
+    .kanban-column-body.kanban-drop-target {
+        @apply bg-amber-50/80 ring-2 ring-amber-200 ring-inset;
+    }
+
+    .kanban-card {
+        @apply rounded-2xl border border-stone-200 bg-white p-3 shadow-sm shadow-stone-200/50;
+    }
+
+    .kanban-card--draggable {
+        @apply cursor-grab active:cursor-grabbing;
+    }
+
+    .kanban-card--readonly {
+        @apply opacity-90;
+    }
+
+    .kanban-card--dragging {
+        @apply rotate-1 opacity-60;
+    }
+
+    .kanban-card-title {
+        @apply block text-sm font-semibold leading-snug text-stone-900 hover:text-stone-700;
+    }
+
+    .kanban-card-assignee {
+        @apply mt-3 flex items-center gap-2;
+    }
+
+    .kanban-avatar {
+        @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-900 text-xs font-semibold text-white;
+    }
+
+    .kanban-card-assignee-name {
+        @apply truncate text-sm font-medium text-stone-800;
+    }
+
+    .kanban-card-meta {
+        @apply truncate text-xs text-stone-500;
+    }
+
+    .kanban-card-footer {
+        @apply mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3;
+    }
 }

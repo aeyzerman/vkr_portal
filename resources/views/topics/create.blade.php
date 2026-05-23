@@ -26,7 +26,7 @@
                     <option value="">Без резервирования</option>
                     @foreach ($students as $student)
                         <option value="{{ $student->id }}" @selected(old('reserved_for') == $student->id)>
-                            {{ $student->full_name ?: $student->name }}
+                            {{ $student->display_name }}
                         </option>
                     @endforeach
                 </select>

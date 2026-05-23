@@ -27,9 +27,9 @@
                             <p class="mt-3 text-sm text-stone-600">{{ \Illuminate\Support\Str::limit($topic->description, 220) }}</p>
                         </div>
                         <div class="text-right text-sm text-stone-500">
-                            <p>Автор: {{ $topic->proposedBy->full_name ?: $topic->proposedBy->name }}</p>
+                            <p>Автор: {{ $topic->proposedBy->display_name }}</p>
                             @if ($topic->reservedFor)
-                                <p class="mt-1">Резерв: {{ $topic->reservedFor->full_name ?: $topic->reservedFor->name }}</p>
+                                <p class="mt-1">Резерв: {{ $topic->reservedFor->display_name }}</p>
                             @endif
                             <p class="mt-1">Активных назначений: {{ $topic->active_assignments_count }}</p>
                         </div>

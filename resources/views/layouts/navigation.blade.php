@@ -48,7 +48,7 @@
                     class="rounded-full border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition hover:border-stone-300 hover:text-stone-900 {{ request()->routeIs('profile.*') ? 'ring-2 ring-amber-200' : '' }}"
                     title="Профиль"
                 >
-                    {{ Auth::user()->full_name ?: Auth::user()->name }}
+                    {{ Auth::user()->display_name }}
                 </a>
 
                 <form method="POST" action="{{ route('logout') }}">
@@ -105,7 +105,7 @@
 
                     <div class="mt-2 border-t border-stone-200 pt-2">
                         <div class="px-3 py-2">
-                            <div class="text-sm font-medium text-stone-800">{{ Auth::user()->full_name ?: Auth::user()->name }}</div>
+                            <div class="text-sm font-medium text-stone-800">{{ Auth::user()->display_name }}</div>
                             <div class="text-xs text-stone-500">{{ Auth::user()->email }}</div>
                         </div>
                         <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">

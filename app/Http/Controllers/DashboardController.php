@@ -47,7 +47,23 @@ class DashboardController extends Controller
 
         $myTopics = $user->proposedTopics()->latest()->take(5)->get();
 
-        return view('dashboard.student', compact('thesis', 'pendingOffers', 'availableTopics', 'myTopics'));
+        $availableGroups = StudyGroup::query()
+            ->with('supervisor')
+            ->orderBy('name')
+            ->get();
+
+        $pendingJoinRequest = $user->pendingStudyGroupJoinRequest()
+            ->with('studyGroup.supervisor')
+            ->first();
+
+        return view('dashboard.student', compact(
+            'thesis',
+            'pendingOffers',
+            'availableTopics',
+            'myTopics',
+            'availableGroups',
+            'pendingJoinRequest',
+        ));
     }
 
     private function supervisorDashboard($user)

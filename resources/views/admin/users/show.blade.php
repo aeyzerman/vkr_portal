@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-stone-900">{{ $user->full_name ?: $user->name }}</h1>
+                <h1 class="text-2xl font-semibold tracking-tight text-stone-900">{{ $user->display_name }}</h1>
                 <p class="mt-1 text-sm text-stone-500">{{ $user->email }}</p>
             </div>
             <a href="{{ route('admin.users.edit', $user) }}" class="btn-secondary">Редактировать</a>
@@ -38,7 +38,31 @@
                 <h2 class="section-title">Группа</h2>
                 <p class="mt-3 text-sm text-stone-600">{{ $user->studyGroup?->name ?: 'Не назначена' }}</p>
                 @if ($user->studyGroup?->supervisor)
-                    <p class="mt-1 text-sm text-stone-500">Куратор: {{ $user->studyGroup->supervisor->full_name ?: $user->studyGroup->supervisor->name }}</p>
+                    <p class="mt-1 text-sm text-stone-500">Куратор: {{ $user->studyGroup->supervisor->display_name }}</p>
+                @endif
+
+                @if ($user->isStudent())
+                    <form method="POST" action="{{ route('admin.users.assign-group', $user) }}" class="mt-5 space-y-3">
+                        @csrf
+                        <label class="text-sm font-medium text-stone-700">Назначить группу</label>
+                        <select name="study_group_id" class="field" required>
+                            <option value="" disabled selected>Выберите группу</option>
+                            @foreach (\App\Models\StudyGroup::with('supervisor')->orderBy('name')->get() as $group)
+                                <option value="{{ $group->id }}" @selected($user->study_group_id === $group->id)>
+                                    {{ $group->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <button class="btn-primary">Сохранить</button>
+                    </form>
+
+                    @if ($user->study_group_id)
+                        <form method="POST" action="{{ route('admin.users.remove-group', $user) }}" class="mt-3">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn-danger text-sm">Открепить от группы</button>
+                        </form>
+                    @endif
                 @endif
             </div>
         </aside>

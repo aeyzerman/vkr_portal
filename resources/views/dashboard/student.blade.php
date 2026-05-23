@@ -28,7 +28,7 @@
                             <span class="badge badge-neutral">{{ $thesis->studyGroup->name }}</span>
                         </div>
                         <h3 class="mt-4 text-lg font-semibold text-stone-900">{{ $thesis->topic?->title ?? 'Тема не указана' }}</h3>
-                        <p class="mt-2 text-sm text-stone-600">Руководитель: {{ $thesis->supervisor->full_name ?: $thesis->supervisor->name }}</p>
+                        <p class="mt-2 text-sm text-stone-600">Руководитель: {{ $thesis->supervisor->display_name }}</p>
                         <p class="mt-1 text-sm text-stone-500">Назначена: {{ optional($thesis->assigned_at)->format('d.m.Y H:i') }}</p>
                     </div>
                 @else
@@ -53,7 +53,7 @@
                                 </span>
                             </div>
                             <div class="mt-4 flex flex-wrap items-center gap-3 text-sm text-stone-500">
-                                <span>Предложил: {{ $topic->proposedBy->full_name ?: $topic->proposedBy->name }}</span>
+                                <span>Предложил: {{ $topic->proposedBy->display_name }}</span>
                                 @if ($topic->reserved_for)
                                     <span class="badge badge-warning">Зарезервирована за вами</span>
                                 @endif
@@ -78,13 +78,15 @@
         </section>
 
         <aside class="space-y-6">
+            @include('dashboard.partials.student-group', ['user' => auth()->user()])
+
             <div class="panel">
                 <h2 class="section-title">Предложения преподавателя</h2>
                 <div class="mt-5 space-y-4">
                     @forelse ($pendingOffers as $offer)
                         <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5">
                             <h3 class="font-semibold text-stone-900">{{ $offer->topic?->title ?? 'Тема без названия' }}</h3>
-                            <p class="mt-2 text-sm text-stone-600">{{ $offer->supervisor->full_name ?: $offer->supervisor->name }}</p>
+                            <p class="mt-2 text-sm text-stone-600">{{ $offer->supervisor->display_name }}</p>
                             <p class="mt-1 text-sm text-stone-500">Предложено {{ optional($offer->assigned_at)->format('d.m.Y H:i') }}</p>
                             <div class="mt-4 flex flex-wrap gap-3">
                                 <form method="POST" action="{{ route('thesis.accept', $offer) }}">

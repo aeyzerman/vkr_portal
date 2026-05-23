@@ -12,7 +12,7 @@
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <h2 class="section-title">{{ $thesis->topic?->title ?? 'Без темы' }}</h2>
-                        <p class="mt-1 text-sm text-stone-500">{{ $thesis->studyGroup->name }} • Руководитель: {{ $thesis->supervisor->full_name ?: $thesis->supervisor->name }}</p>
+                        <p class="mt-1 text-sm text-stone-500">{{ $thesis->studyGroup->name }} • Руководитель: {{ $thesis->supervisor->display_name }}</p>
                     </div>
                     <div class="flex gap-2">
                         <span class="badge badge-success">{{ $thesis->assignment_status->label() }}</span>
@@ -60,7 +60,7 @@
                     @forelse ($pendingOffers as $offer)
                         <div class="rounded-3xl border border-amber-200 bg-amber-50 p-5">
                             <h3 class="font-semibold text-stone-900">{{ $offer->topic?->title ?? 'Без темы' }}</h3>
-                            <p class="mt-2 text-sm text-stone-600">Руководитель: {{ $offer->supervisor->full_name ?: $offer->supervisor->name }}</p>
+                            <p class="mt-2 text-sm text-stone-600">Руководитель: {{ $offer->supervisor->display_name }}</p>
                             <div class="mt-4 flex gap-3">
                                 <form method="POST" action="{{ route('thesis.accept', $offer) }}">
                                     @csrf
