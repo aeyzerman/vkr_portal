@@ -5,9 +5,6 @@
                 <h1 class="text-2xl font-semibold tracking-tight text-stone-900">{{ $thesis->topic?->title ?? 'Карточка работы' }}</h1>
                 <p class="mt-1 text-sm text-stone-500">Полная информация о назначении темы и ходе выполнения.</p>
             </div>
-            @if ($thesis->document_path)
-                <a href="{{ route('thesis.document.download', $thesis) }}" class="btn-secondary">Скачать файл</a>
-            @endif
         </div>
     </x-slot>
 
@@ -40,6 +37,16 @@
                         <dd class="mt-2 font-medium text-stone-900">{{ $thesis->grade ?: 'Нет' }}</dd>
                     </div>
                 </dl>
+
+                @php
+                    $canManageDocuments = auth()->id() === $thesis->student_id && $thesis->isActive();
+                @endphp
+                @if ($thesis->document_path || $canManageDocuments)
+                    @include('thesis.partials.document-panel', [
+                        'thesis' => $thesis,
+                        'canManage' => $canManageDocuments,
+                    ])
+                @endif
             </div>
         </section>
 

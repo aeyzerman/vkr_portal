@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/thesis/{thesis}', [ThesisController::class, 'show'])->name('thesis.show');
 
     Route::post('/thesis/{thesis}/document', [ThesisController::class, 'uploadDocument'])->name('thesis.document.upload');
+    Route::delete('/thesis/{thesis}/document', [ThesisController::class, 'deleteDocument'])->name('thesis.document.delete');
     Route::get('/thesis/{thesis}/document', [ThesisController::class, 'downloadDocument'])->name('thesis.document.download');
     Route::post('/thesis/{thesis}/accept', [ThesisController::class, 'acceptOffer'])->name('thesis.accept');
     Route::post('/thesis/{thesis}/decline', [ThesisController::class, 'declineOffer'])->name('thesis.decline');

@@ -26,10 +26,13 @@
                     <option value="">Без резервирования</option>
                     @foreach ($students as $student)
                         <option value="{{ $student->id }}" @selected(old('reserved_for') == $student->id)>
-                            {{ $student->display_name }}
+                            {{ $student->display_name }}@if ($student->studyGroup) ({{ $student->studyGroup->name }})@endif
                         </option>
                     @endforeach
                 </select>
+                @if ($students->isEmpty())
+                    <p class="mt-2 text-sm text-stone-500">Нет студентов без выбранной темы в ваших группах.</p>
+                @endif
             </div>
         @endif
 

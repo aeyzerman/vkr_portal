@@ -31,21 +31,11 @@
                     </div>
                 </div>
 
-                <div class="mt-6 flex flex-wrap items-center gap-3">
+                <div class="mt-6">
                     <a href="{{ route('thesis.show', $thesis) }}" class="btn-secondary">Открыть карточку</a>
-                    @if ($thesis->document_path)
-                        <a href="{{ route('thesis.document.download', $thesis) }}" class="btn-secondary">Скачать текущий файл</a>
-                    @endif
                 </div>
 
-                <form method="POST" action="{{ route('thesis.document.upload', $thesis) }}" enctype="multipart/form-data" class="mt-6 space-y-4">
-                    @csrf
-                    <div>
-                        <label class="text-sm font-medium text-stone-700">Загрузить файл работы</label>
-                        <input type="file" name="document" class="field" required>
-                    </div>
-                    <button class="btn-primary">Загрузить</button>
-                </form>
+                @include('thesis.partials.document-panel', ['thesis' => $thesis, 'canManage' => true])
             </section>
         @else
             <section class="panel-muted">

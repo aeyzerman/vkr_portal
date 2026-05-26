@@ -25,6 +25,11 @@ class ThesisPolicy
         return $thesis->student_id === $user->id && $thesis->isActive();
     }
 
+    public function deleteDocument(User $user, Thesis $thesis): bool
+    {
+        return $this->uploadDocument($user, $thesis);
+    }
+
     public function downloadDocument(User $user, Thesis $thesis): bool
     {
         return $this->view($user, $thesis);

@@ -84,16 +84,19 @@
                         @csrf
                         <div>
                             <label class="text-sm font-medium text-stone-700">Студент</label>
-                            <select name="student_id" class="field" required>
+                            <select name="student_id" class="field" @disabled($students->isEmpty()) @required($students->isNotEmpty())>
                                 <option value="">Выберите студента</option>
                                 @foreach ($students as $student)
-                                    <option value="{{ $student->id }}">
-                                        {{ $student->display_name }}
+                                    <option value="{{ $student->id }}" @selected(old('student_id') == $student->id)>
+                                        {{ $student->display_name }}@if ($student->studyGroup) ({{ $student->studyGroup->name }})@endif
                                     </option>
                                 @endforeach
                             </select>
+                            @if ($students->isEmpty())
+                                <p class="mt-2 text-sm text-stone-500">Нет студентов без выбранной темы в доступных группах.</p>
+                            @endif
                         </div>
-                        <button class="btn-primary">Отправить предложение</button>
+                        <button class="btn-primary" @disabled($students->isEmpty())>Отправить предложение</button>
                     </form>
                 </div>
             @endif

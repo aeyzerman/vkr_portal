@@ -66,6 +66,22 @@ class ThesisController extends Controller
         return back()->with('success', 'Файл работы загружен.');
     }
 
+    public function deleteDocument(Request $request, Thesis $thesis)
+    {
+        $this->authorize('deleteDocument', $thesis);
+
+        if ($thesis->document_path) {
+            Storage::disk('local')->delete($thesis->document_path);
+        }
+
+        $thesis->update([
+            'document_path' => null,
+            'document_name' => null,
+        ]);
+
+        return back()->with('success', 'Файл работы удалён.');
+    }
+
     public function downloadDocument(Thesis $thesis)
     {
         $this->authorize('downloadDocument', $thesis);

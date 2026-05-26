@@ -113,6 +113,17 @@ class User extends Authenticatable
         return $query->whereRaw('(permissions & ?) != 0', [self::PERM_STUDENT]);
     }
 
+    public function scopeWithoutActiveTopicAssignment(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('theses', function (Builder $thesisQuery): void {
+            $thesisQuery->whereNull('done_at')
+                ->where(function (Builder $statusQuery): void {
+                    $statusQuery->whereIn('assignment_status', ThesisAssignmentStatus::activeValues())
+                        ->orWhere('assignment_status', ThesisAssignmentStatus::Pending->value);
+                });
+        });
+    }
+
     public function scopeSearchByName(Builder $query, string $search): Builder
     {
         $like = '%'.$search.'%';

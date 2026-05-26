@@ -9,6 +9,7 @@ use App\Models\Thesis;
 use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class TopicController extends Controller
 {
@@ -73,16 +74,7 @@ class TopicController extends Controller
         $this->authorize('create', Topic::class);
 
         $user = $request->user();
-        $students = collect();
-
-        if ($user->isSupervisor()) {
-            $students = User::query()
-                ->whereRaw('(permissions & ?) != 0', [User::PERM_STUDENT])
-                ->whereIn('study_group_id', $user->supervisedGroups()->pluck('id'))
-                ->orderBy('last_name')
-                ->orderBy('first_name')
-                ->get(['id', 'name', 'last_name', 'first_name', 'patronymic', 'study_group_id']);
-        }
+        $students = $this->studentsForTopicOffer($user);
 
         return view('topics.create', [
             'user' => $user,
@@ -146,16 +138,7 @@ class TopicController extends Controller
         ]);
 
         $user = $request->user();
-        $students = collect();
-
-        if ($user->isSupervisor()) {
-            $students = User::query()
-                ->whereRaw('(permissions & ?) != 0', [User::PERM_STUDENT])
-                ->whereIn('study_group_id', $user->supervisedGroups()->pluck('id'))
-                ->orderBy('last_name')
-                ->orderBy('first_name')
-                ->get(['id', 'name', 'last_name', 'first_name', 'patronymic', 'study_group_id']);
-        }
+        $students = $this->studentsForTopicOffer($user);
 
         return view('topics.show', [
             'topic' => $topic,
@@ -314,5 +297,41 @@ class TopicController extends Controller
 
         return redirect()->route('topics.show', $topic)
             ->with('success', 'Тема обновлена.');
+    }
+
+    private function studentsForTopicOffer(User $user): Collection
+    {
+        if (! $user->isSupervisor() && ! $user->isAdmin()) {
+            return collect();
+        }
+
+        $query = User::query()
+            ->students()
+            ->whereNotNull('study_group_id')
+            ->withoutActiveTopicAssignment()
+            ->with('studyGroup:id,name')
+            ->orderBy('last_name')
+            ->orderBy('first_name');
+
+        if ($user->isSupervisor()) {
+            $groupIds = $user->supervisedGroups()->pluck('id');
+
+            if ($groupIds->isEmpty() && ! $user->isAdmin()) {
+                return collect();
+            }
+
+            if ($groupIds->isNotEmpty()) {
+                $query->whereIn('study_group_id', $groupIds);
+            }
+        }
+
+        return $query->get([
+            'id',
+            'name',
+            'last_name',
+            'first_name',
+            'patronymic',
+            'study_group_id',
+        ]);
     }
 }

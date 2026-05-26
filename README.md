@@ -2,6 +2,8 @@
 1) docker compose up -d --build
 2) docker compose exec app /scripts/setup.sh
 
+MySQL в Docker настроен на `utf8mb4` (файл `docker/mysql/conf.d/charset.cnf`). После обновления `docker-compose.yml` пересоздайте контейнер БД: `docker compose up -d db --force-recreate`.
+
 ## Администратор
 
 В `.env` задайте учётные данные:
