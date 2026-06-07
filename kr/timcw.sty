@@ -16,6 +16,15 @@
 \RequirePackage{graphicx}
 \usepackage{setspace}
 \onehalfspacing % полуторный интервал во всём документе
+% --- Настройка переносов ---
+\exhyphenpenalty=10000
+\hyphenpenalty=50
+\tolerance=1000
+\emergencystretch=3em
+\XeTeXinterchartokenstate=1
+\newXeTeXintercharclass\dashclass
+\XeTeXcharclass`\-=\dashclass
+\XeTeXinterchartoks\dashclass\z@={\nobreak}
 
 \usepackage{titlesec}
 
