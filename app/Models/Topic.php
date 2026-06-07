@@ -6,7 +6,11 @@ namespace App\Models;
 
 use App\Enums\ThesisAssignmentStatus;
 use App\Enums\TopicKind;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -36,27 +40,27 @@ class Topic extends Model
         'approved_at' => 'datetime',
     ];
 
-    public function proposedBy()
+    public function proposedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'proposed_by');
     }
 
-    public function reservedFor()
+    public function reservedFor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reserved_for');
     }
 
-    public function approvedBy()
+    public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function theses()
+    public function theses(): HasMany
     {
         return $this->hasMany(Thesis::class);
     }
 
-    public function thesis()
+    public function thesis(): HasOne
     {
         return $this->hasOne(Thesis::class)
             ->whereIn('assignment_status', ThesisAssignmentStatus::activeValues())
@@ -64,7 +68,7 @@ class Topic extends Model
     }
 
     // Свободные (не занятые) одобренные темы
-    public function scopeAvailable($query)
+    public function scopeAvailable(Builder $query): Builder
     {
         return $query->where('is_approved', true)
             ->whereDoesntHave('theses', fn($q) => $q

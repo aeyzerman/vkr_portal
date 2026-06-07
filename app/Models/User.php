@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\StudyGroupJoinRequestStatus;
@@ -10,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -197,7 +200,7 @@ class User extends Authenticatable
         return $this->hasMany(StudyGroup::class, 'supervisor_id');
     }
 
-    public function studyGroup(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function studyGroup(): BelongsTo
     {
         return $this->belongsTo(StudyGroup::class);
     }

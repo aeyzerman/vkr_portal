@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\ThesisAssignmentStatus;
@@ -11,6 +13,7 @@ use App\Models\Thesis;
 use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class StudyGroupController extends Controller
 {
@@ -59,7 +62,7 @@ class StudyGroupController extends Controller
         $user = request()->user();
 
         if (! $user->isAdmin() && $studyGroup->supervisor_id !== $user->id) {
-            abort(403);
+            abort(HttpResponse::HTTP_FORBIDDEN);
         }
 
         $studyGroup->load([
@@ -118,7 +121,7 @@ class StudyGroupController extends Controller
         $user = $request->user();
 
         if (! $user->isAdmin() && $studyGroup->supervisor_id !== $user->id) {
-            abort(403);
+            abort(HttpResponse::HTTP_FORBIDDEN);
         }
 
         if (! $studyGroup->topic_selection_deadline || now()->isBefore($studyGroup->topic_selection_deadline)) {

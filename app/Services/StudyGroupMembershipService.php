@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\StudyGroupJoinRequestStatus;
@@ -8,6 +10,7 @@ use App\Models\StudyGroupJoinRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class StudyGroupMembershipService
 {
@@ -115,7 +118,7 @@ class StudyGroupMembershipService
         if ($group) {
             $this->assertCanManageGroup($processor, $group);
         } elseif (! $processor->isAdmin()) {
-            abort(403);
+            abort(HttpResponse::HTTP_FORBIDDEN);
         }
 
         $student->update(['study_group_id' => null]);
@@ -148,7 +151,7 @@ class StudyGroupMembershipService
             return;
         }
 
-        abort(403);
+        abort(HttpResponse::HTTP_FORBIDDEN);
     }
 
     private function assertPending(StudyGroupJoinRequest $joinRequest): void

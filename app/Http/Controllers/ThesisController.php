@@ -9,6 +9,7 @@ use App\Models\Thesis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ThesisController extends Controller
 {
@@ -87,7 +88,7 @@ class ThesisController extends Controller
         $this->authorize('downloadDocument', $thesis);
 
         if (! $thesis->document_path || ! Storage::disk('local')->exists($thesis->document_path)) {
-            abort(404, 'Файл не найден.');
+            abort(HttpResponse::HTTP_NOT_FOUND, 'Файл не найден.');
         }
 
         return Storage::disk('local')->download(
@@ -98,7 +99,7 @@ class ThesisController extends Controller
 
     public function acceptOffer(Request $request, Thesis $thesis)
     {
-        abort_unless($thesis->student_id === $request->user()->id, 403);
+        abort_unless($thesis->student_id === $request->user()->id, HttpResponse::HTTP_FORBIDDEN);
 
         if (! $thesis->isAwaitingStudentDecision()) {
             return back()->with('error', 'Это предложение уже неактуально.');
@@ -135,7 +136,7 @@ class ThesisController extends Controller
 
     public function declineOffer(Request $request, Thesis $thesis)
     {
-        abort_unless($thesis->student_id === $request->user()->id, 403);
+        abort_unless($thesis->student_id === $request->user()->id, HttpResponse::HTTP_FORBIDDEN);
 
         if (! $thesis->isAwaitingStudentDecision()) {
             return back()->with('error', 'Это предложение уже неактуально.');

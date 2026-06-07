@@ -8,7 +8,9 @@ use App\Enums\ThesisAssignmentStatus;
 use App\Enums\ThesisAssignmentType;
 use App\Enums\ThesisStatus;
 use DateTime;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int $id
@@ -64,22 +66,22 @@ class Thesis extends Model
 
     // --- Связи ---
 
-    public function student()
+    public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_id');
     }
 
-    public function supervisor()
+    public function supervisor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'supervisor_id');
     }
 
-    public function studyGroup()
+    public function studyGroup(): BelongsTo
     {
         return $this->belongsTo(StudyGroup::class);
     }
 
-    public function topic()
+    public function topic(): BelongsTo
     {
         return $this->belongsTo(Topic::class);
     }
@@ -113,12 +115,12 @@ class Thesis extends Model
     }
 
     // Скоупы
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('done_at');
     }
 
-    public function scopeCompleted($query)
+    public function scopeCompleted(Builder $query): Builder
     {
         return $query->whereNotNull('done_at');
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\StudyGroup;
@@ -9,6 +11,7 @@ use App\Services\StudyGroupMembershipService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class StudyGroupMembershipController extends Controller
 {
@@ -18,7 +21,7 @@ class StudyGroupMembershipController extends Controller
 
     public function requestJoin(Request $request, StudyGroup $studyGroup): RedirectResponse
     {
-        abort_unless($request->user()->isStudent(), 403);
+        abort_unless($request->user()->isStudent(), HttpResponse::HTTP_FORBIDDEN);
 
         $this->membership->requestJoin($request->user(), $studyGroup);
 
@@ -55,7 +58,7 @@ class StudyGroupMembershipController extends Controller
 
     public function destroyMember(Request $request, StudyGroup $studyGroup, User $user): RedirectResponse
     {
-        abort_unless($user->study_group_id === $studyGroup->id, 404);
+        abort_unless($user->study_group_id === $studyGroup->id, HttpResponse::HTTP_NOT_FOUND);
 
         $this->membership->removeStudent($user, $request->user());
 
@@ -67,7 +70,7 @@ class StudyGroupMembershipController extends Controller
         $user = $request->user();
         abort_unless(
             $user->isAdmin() || ($user->isSupervisor() && $studyGroup->supervisor_id === $user->id),
-            403
+            HttpResponse::HTTP_FORBIDDEN
         );
 
         $validated = $request->validate([

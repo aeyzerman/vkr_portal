@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Enums\ThesisAssignmentStatus;
@@ -10,6 +12,7 @@ use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class TopicController extends Controller
 {
@@ -151,7 +154,7 @@ class TopicController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->isStudent(), 403);
+        abort_unless($user->isStudent(), HttpResponse::HTTP_FORBIDDEN);
 
         if (! $user->study_group_id || ! $user->studyGroup) {
             return back()->with('error', 'Студент должен быть прикреплён к учебной группе.');
@@ -204,7 +207,7 @@ class TopicController extends Controller
     public function assign(Request $request, Topic $topic)
     {
         $user = $request->user();
-        abort_unless($user->isSupervisor() || $user->isAdmin(), 403);
+        abort_unless($user->isSupervisor() || $user->isAdmin(), HttpResponse::HTTP_FORBIDDEN);
 
         $validated = $request->validate([
             'student_id' => 'required|exists:users,id',
@@ -221,7 +224,7 @@ class TopicController extends Controller
         }
 
         if ($user->isSupervisor() && $student->studyGroup->supervisor_id !== $user->id) {
-            abort(403);
+            abort(HttpResponse::HTTP_FORBIDDEN);
         }
 
         if ($student->activeThesis()->exists()) {
