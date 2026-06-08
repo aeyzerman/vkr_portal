@@ -5,15 +5,15 @@
 \contentsline {section}{\numberline {1.2.\relax }Обзор аналогов и объяснение актуальности работы}{7}{}%
 \contentsline {section}{\numberline {1.3.\relax }Требования к системе}{9}{}%
 \contentsline {section}{\numberline {1.4.\relax }Выбор технологического стека}{11}{}%
-\contentsline {chapter}{\numberline {2.}Проектирование системы}{13}{}%
-\contentsline {section}{\numberline {2.1.\relax }Архитектура и паттерн MVC}{13}{}%
-\contentsline {section}{\numberline {2.2.\relax }Проектирование базы данных}{14}{}%
-\contentsline {section}{\numberline {2.3.\relax }Ролевая модель пользователей}{16}{}%
-\contentsline {chapter}{\numberline {3.}Разработка системы}{19}{}%
-\contentsline {section}{\numberline {3.1.\relax }Структура Laravel-приложения}{19}{}%
-\contentsline {section}{\numberline {3.2.\relax }Аутентификация и разграничение прав}{20}{}%
-\contentsline {section}{\numberline {3.3.\relax }Реализация основных модулей}{21}{}%
-\contentsline {section}{\numberline {3.4.\relax }Интерфейс}{23}{}%
-\contentsline {section}{\numberline {3.5.\relax }Контейнеризация}{25}{}%
-\contentsline {chapter}{Заключение}{27}{}%
-\contentsline {chapter}{Библиографический список}{29}{}%
+\contentsline {chapter}{\numberline {2.}Проектирование системы}{14}{}%
+\contentsline {section}{\numberline {2.1.\relax }Архитектура и паттерн MVC}{14}{}%
+\contentsline {section}{\numberline {2.2.\relax }Проектирование базы данных}{15}{}%
+\contentsline {section}{\numberline {2.3.\relax }Ролевая модель пользователей}{17}{}%
+\contentsline {chapter}{\numberline {3.}Разработка системы}{20}{}%
+\contentsline {section}{\numberline {3.1.\relax }Структура Laravel-приложения}{20}{}%
+\contentsline {section}{\numberline {3.2.\relax }Аутентификация и разграничение прав}{21}{}%
+\contentsline {section}{\numberline {3.3.\relax }Реализация основных модулей}{23}{}%
+\contentsline {section}{\numberline {3.4.\relax }Интерфейс}{24}{}%
+\contentsline {section}{\numberline {3.5.\relax }Контейнеризация}{26}{}%
+\contentsline {chapter}{Заключение}{28}{}%
+\contentsline {chapter}{Библиографический список}{30}{}%
